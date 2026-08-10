@@ -10,8 +10,8 @@ services:
 
   app:
     build:
-      context: ..                        # ← ルート(.sln のある場所)
-      dockerfile: deploy/Sample.Web.Dockerfile
+      context: ../../baseline                 # ← ルート(.sln のある場所)
+      dockerfile: ../deploy/baseline/Sample.Web.Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"   # 詳細エラーページが出てデモ時のトラブルシュートが楽
       # 接続文字列を compose で明示したい場合は次を有効化（appsettings より優先される）
