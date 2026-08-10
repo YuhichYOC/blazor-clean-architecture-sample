@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Sample.Presentation\Sample.Presentation.csproj" />
+    <ProjectReference Include="..\Sample.Application\Sample.Application.csproj" />
+    <ProjectReference Include="..\Sample.Persistence\Sample.Persistence.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
