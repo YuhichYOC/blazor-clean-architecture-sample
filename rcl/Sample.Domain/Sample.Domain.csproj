@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!--
+    このライブラリは意図的に「参照ゼロ」に保つ。
+    - EF Core / Oracle への依存を持たない → パーシステントの詳細が漏れ込まない。
+    - パッケージ参照が無い → Blazor の server 側・Client(WASM) 側の両方から安全に参照できる。
+    次の Sample.Shared 設計で「どこまでを WASM に載せるか」を決める際、この純粋性が効いてくる。
+  -->
+
+</Project>
