@@ -40,6 +40,8 @@ app.UseStaticFiles();   // wwwroot/css/bom.css 等を配信(.NET 8)
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .AddAdditionalAssemblies(
+        typeof(Sample.Presentation.Components.Pages.BomPage).Assembly);
 
 app.Run();
