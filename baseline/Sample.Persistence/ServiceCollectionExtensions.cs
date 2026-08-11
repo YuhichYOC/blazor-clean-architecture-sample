@@ -21,7 +21,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IBomDataAccess, BomRepository>();
 
-        services.AddScoped<Sample.Application.Abstractions.IBomRepository, BomRepositoryAdapter>(); // ← 追加
+        services.AddScoped<IBomRepository, BomRepositoryAdapter>(); // ← 追加
 
         return services;
     }
@@ -29,10 +29,12 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddUserPersistence(
         this IServiceCollection services, string connectionString)
     {
-        services.AddDbContextFactory<BomDbContext>(options =>
+        services.AddDbContextFactory<UserDbContext>(options =>
             options.UseOracle(connectionString));
 
-        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserDataAccess, UserRepository>();
+
+        services.AddScoped<IUserRepository, UserRepositoryAdapter>();
 
         return services;
     }

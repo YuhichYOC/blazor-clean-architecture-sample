@@ -1,17 +1,17 @@
 using Microsoft.EntityFrameworkCore;
-using Sample.Application.Abstractions;
 using Sample.Domain;
 
 namespace Sample.Persistence;
 
-internal sealed class UserRepository(IDbContextFactory<BomDbContext> factory) : IUserRepository
+internal sealed class UserRepository(IDbContextFactory<UserDbContext> factory) : IUserDataAccess
 {
     public async Task<User?> FindByIdAsync(string userId, CancellationToken ct = default)
     {
         await using var db = factory.CreateDbContext();
 
-        return await db.Set<User>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.UserId == userId, ct);
+        return await db.Users
+            .Where(u => u.UserId == userId)
+            .Select(u => new User(u.UserId, u.Password, u.UserName))
+            .FirstAsync(ct);
     }
 }
