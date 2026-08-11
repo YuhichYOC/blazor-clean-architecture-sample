@@ -15,6 +15,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         o.LoginPath = "/login";
         o.ExpireTimeSpan = TimeSpan.FromHours(1);
     });
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
 
 // ─────────────────────────────────────────────────────────────
 // 合成ルート(Composition Root)。
