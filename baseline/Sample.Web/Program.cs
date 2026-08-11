@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Sample.Application;      // AddBomApplication
 using Sample.Persistence;      // AddBomPersistence
 using Sample.Web.Components;   // App(標準テンプレートのルートコンポーネント)
@@ -7,6 +8,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Blazor Web App(サーバー対話式)。この画面は InteractiveServer で動かす。
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(o =>
+    {
+        o.LoginPath = "/login";
+        o.ExpireTimeSpan = TimeSpan.FromHours(1);
+    });
 
 // ─────────────────────────────────────────────────────────────
 // 合成ルート(Composition Root)。
@@ -25,7 +33,9 @@ var connectionString = builder.Configuration.GetConnectionString("Bom")
     ?? throw new InvalidOperationException("接続文字列 'Bom' が未設定です(appsettings.json)。");
 
 builder.Services.AddBomApplication();
+builder.Services.AddUserApplication();
 builder.Services.AddBomPersistence(connectionString);
+builder.Services.AddUserPersistence(connectionString);
 
 var app = builder.Build();
 
@@ -37,6 +47,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();   // wwwroot/css/bom.css 等を配信(.NET 8)
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()

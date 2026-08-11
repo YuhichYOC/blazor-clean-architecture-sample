@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Sample.Application.Deletion;
 using Sample.Application.Query;
 using Sample.Application.Registration;
+using Sample.Application.UseCases;
 
 namespace Sample.Application;
 
@@ -23,6 +24,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<GetBomListUseCase>();
         services.AddScoped<RegisterItemUseCase>();
         services.AddScoped<DeleteItemUseCase>();
+        return services;
+    }
+
+    public static IServiceCollection AddUserApplication(this IServiceCollection services)
+    {
+        services.AddScoped<AuthenticateUser>();
         return services;
     }
 }

@@ -1,0 +1,87 @@
+@page "/login"
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Sample.Application.UseCases
+@inject AuthenticateUser AuthenticateUser
+@inject NavigationManager Nav
+
+<PageTitle>ログイン</PageTitle>
+
+<div class="card">
+  <div class="card-body">
+    <h3>ログイン</h3>
+
+    <EditForm Model="Input" method="post" OnValidSubmit="LoginAsync" FormName="login">
+      <DataAnnotationsValidator />
+
+      @if (!string.IsNullOrEmpty(_error))
+      {
+        <div class="alert alert-danger">@_error</div>
+      }
+
+      <div class="mb-3 row">
+        <label class="col-sm-3 col-form-label text-end">ID</label>
+        <div class="col-sm-6">
+          <InputText class="form-control" @bind-Value="Input.UserId" />
+          <ValidationMessage For="() => Input.UserId" />
+        </div>
+      </div>
+
+      <div class="mb-3 row">
+        <label class="col-sm-3 col-form-label text-end">パスワード</label>
+        <div class="col-sm-6">
+          <InputText type="password" class="form-control" @bind-Value="Input.Password" />
+          <ValidationMessage For="() => Input.Password" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-sm-9 text-end">
+          <button type="submit" class="btn btn-primary">ログイン</button>
+        </div>
+      </div>
+    </EditForm>
+  </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private LoginInput Input { get; set; } = new();
+
+    private string? _error;
+
+    private async Task LoginAsync()
+    {
+        var user = await AuthenticateUser.ExecuteAsync(Input.UserId!, Input.Password!);
+        if (user is null)
+        {
+            _error = "ID またはパスワードが正しくありません。";
+            return;
+        }
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.UserId),
+            new(ClaimTypes.Name, user.UserName),   // ← ヘッダー表示はこれを読む
+        };
+        var identity  = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+        Nav.NavigateTo("/menu");
+    }
+
+    private sealed class LoginInput
+    {
+        [Required(ErrorMessage = "ID を入力してください。")]
+        public string? UserId { get; set; }
+
+        [Required(ErrorMessage = "パスワードを入力してください。")]
+        public string? Password { get; set; }
+    }
+}

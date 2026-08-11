@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Sample.Application.Abstractions;
 
 namespace Sample.Persistence;
 
@@ -21,6 +22,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBomDataAccess, BomRepository>();
 
         services.AddScoped<Sample.Application.Abstractions.IBomRepository, BomRepositoryAdapter>(); // ← 追加
+
+        return services;
+    }
+
+    public static IServiceCollection AddUserPersistence(
+        this IServiceCollection services, string connectionString)
+    {
+        services.AddDbContextFactory<BomDbContext>(options =>
+            options.UseOracle(connectionString));
+
+        services.AddScoped<IUserRepository, UserRepository>();
 
         return services;
     }
