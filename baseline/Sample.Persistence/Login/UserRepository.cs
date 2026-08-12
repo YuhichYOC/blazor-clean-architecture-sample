@@ -23,6 +23,6 @@ internal sealed class UserRepository(IDbContextFactory<UserDbContext> factory) :
         return await db.Users
             .Where(u => u.UserId == userId)
             .Select(u => new User(u.UserId, u.Password, u.UserName))
-            .FirstAsync(ct);
+            .FirstOrDefaultAsync(ct); // userId = USERS.USER_ID でヒットする行が存在しないときに null を返す, FirstAsync ではヒットする行が存在しないときに実行時例外になる
     }
 }
