@@ -12,6 +12,9 @@ namespace Sample.Persistence;
  * 後でパーシステント層の ServiceCollectionExtensions にて使用する
  *
  * クラスの宣言は IUserDataAccess を使って IUserRepository を実装する形になっている
+ *
+ * 2026-8-12 注記 ... ログイン処理はやることが単純で、実はリポジトリアダプターを間に挟む必要がない
+ * 一か月後の自分自身が DIP に向き合ったとき、この部分でどうすべきか必ず悩む。DIP 実装のバリエーションを暫定的に一つに絞るため、敢えてこの形にした
  */
 public sealed class UserRepositoryAdapter(IUserDataAccess inner) : IUserRepository
 {
