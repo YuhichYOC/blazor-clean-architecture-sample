@@ -27,9 +27,15 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    /*
+     * 機能追加時にアプリケーション層でやること
+     * 3. ServiceCollectionExtensions への DI 定義の追加
+     * IUserRepository での説明にある通り、アプリケーション層のユースケースを DI へ追加する
+     * このメソッドはアプリケーション全体のエントリポイント ( このサンプルの場合は Sample.Web の Program.cs ) で呼び出される
+     */
     public static IServiceCollection AddUserApplication(this IServiceCollection services)
     {
-        services.AddScoped<AuthenticateUser>();
+        services.AddScoped<AuthenticateUseCase>();
         return services;
     }
 }

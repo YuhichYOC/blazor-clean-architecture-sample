@@ -4,7 +4,7 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
 @using Sample.Application.UseCases
-@inject AuthenticateUser AuthenticateUser
+@inject AuthenticateUseCase AuthenticateUseCase
 @inject NavigationManager Nav
 
 <PageTitle>ログイン</PageTitle>
@@ -57,7 +57,7 @@
 
     private async Task LoginAsync()
     {
-        var user = await AuthenticateUser.ExecuteAsync(Input.UserId!, Input.Password!);
+        var user = await AuthenticateUseCase.ExecuteAsync(Input.UserId!, Input.Password!);
         if (user is null)
         {
             _error = "ID またはパスワードが正しくありません。";
