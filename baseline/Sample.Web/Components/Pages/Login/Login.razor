@@ -1,9 +1,23 @@
+@*
+ * 補足
+ * Login は HttpContext.SignInAsync でクライアント側へ Cookie を保存する
+ * このページは @rendermode を宣言せず静的 SSR で動作させる
+ *@
+@*
+ * 機能追加時にプレゼンテーション層でやること
+ * 2. ページの追加
+ * @page "<URL>" で、どの URL にアクセスすればこのページを開くか指定する
+ *@
 @page "/login"
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
 @using Sample.Application.UseCases
+@*
+ * 機能追加時にプレゼンテーション層でやること
+ * 3. 使用するユースケースの DI による代入を宣言
+ *@
 @inject AuthenticateUseCase AuthenticateUseCase
 @inject NavigationManager Nav
 
@@ -69,7 +83,9 @@
             new(ClaimTypes.NameIdentifier, user.UserId),
             new(ClaimTypes.Name, user.UserName),   // ← ヘッダー表示はこれを読む
         };
+        // アプリにより主張 ( Claim ) される、このユーザーが誰か ( Identity ) という情報
         var identity  = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        // Principal ... 認証され、権限を評価される対象となる、システム内で行為する主体, 「いま誰が行為しているか」を表す
         var principal = new ClaimsPrincipal(identity);
 
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
