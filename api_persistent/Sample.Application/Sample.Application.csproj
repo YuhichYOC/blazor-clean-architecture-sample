@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!--
+    依存はドメインのみ。EF Core / Oracle への参照は持たない。
+    → Sample.Application は「サーバー専用の永続化詳細」を一切引き込まない。
+       これにより、次に作る Sample.Shared 経由で WASM 側へユースケースの型を
+       載せる余地を残せる(案A: Persistence を参照する形だと Oracle プロバイダーが
+       推移的に混入し、この余地が消える)。
+    永続化は IBomRepository ポートの向こう側(アダプタ)に隔離する。
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sample.Domain\Sample.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- AddBomApplication 拡張のためだけの DI「抽象」参照。
+         DI コンテナ本体でも EF/Oracle でもない。これ自体は境界を汚さない。 -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+  </ItemGroup>
+
+</Project>

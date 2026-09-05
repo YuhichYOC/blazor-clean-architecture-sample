@@ -1,0 +1,145 @@
+/* =====================================================================
+   部品構成表画面のスタイル。
+   意図的に定石どおりの控えめな見た目にしている(本サンプルの主眼は
+   アーキテクチャであって視覚デザインではないため)。
+   App.razor の <head> で読み込むこと:
+       <link rel="stylesheet" href="css/bom.css" />
+   ===================================================================== */
+
+/* ── 一覧グリッド ── */
+.bom-grid {
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 900px;
+}
+.bom-grid th,
+.bom-grid td {
+    border: 1px solid #ccc;
+    padding: 6px 10px;
+    text-align: left;
+}
+.bom-grid thead th {
+    background: #f5f5f5;
+    font-weight: 600;
+}
+
+/* ── アクションボタン ── */
+.bom-actions {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+}
+.btn-primary {
+    background: #2b3fdb;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.btn-default {
+    background: #fff;
+    color: #333;
+    border: 1px solid #aaa;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.btn-primary:disabled,
+.btn-default:disabled {
+    opacity: .5;
+    cursor: default;
+}
+
+/* ── モーダル共通 ── */
+.bom-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.bom-modal-dialog {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    min-width: 480px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .2);
+}
+.bom-modal-dialog--confirm {
+    min-width: 380px;
+}
+.bom-modal-actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+/* ── 追加モーダルのフォーム ── */
+.form-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.form-row label {
+    width: 48px;
+    flex: 0 0 auto;
+}
+.form-input {
+    padding: 4px 8px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+.form-row .form-input {
+    flex: 1;
+}
+.form-section-title {
+    margin: 12px 0 6px;
+    font-weight: 600;
+}
+
+/* ── 構成部品テーブル ── */
+.component-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+.component-table th,
+.component-table td {
+    border: 1px solid #ccc;
+    padding: 4px 6px;
+}
+.component-table .form-input {
+    width: 100%;
+}
+.cell-op {
+    width: 36px;
+    text-align: center;
+}
+.btn-cell {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #aaa;
+    background: #fafafa;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* ── メッセージ ── */
+.error-text {
+    color: #c0202b;
+    margin-top: 10px;
+}
+.confirm-message {
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+}
+.confirm-detail {
+    color: #555;
+    font-size: .9rem;
+    margin-bottom: 12px;
+}
