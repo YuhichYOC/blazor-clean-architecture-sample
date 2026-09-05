@@ -1,0 +1,23 @@
+services:
+  oracle:
+    image: container-registry.oracle.com/database/free:latest
+    environment:
+      ORACLE_PWD: "OraclePwd_123"        # SYS/SYSTEM 用。init では OS 認証を使うので実質任意
+      NLS_LANG: ".AL32UTF8"
+    volumes:
+      - ./oracle-init:/opt/oracle/scripts/startup:ro
+    # ports: ["1521:1521"]               # ホスト側の SQL クライアントから覗きたいときだけ開ける
+
+  app:
+    build:
+      context: ../../rcl                      # ← ルート(.sln のある場所)
+      dockerfile: ../deploy/rcl/Sample.Web.Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"   # 詳細エラーページが出てデモ時のトラブルシュートが楽
+      # 接続文字列を compose で明示したい場合は次を有効化（appsettings より優先される）
+      # ConnectionStrings__Bom: "User Id=DEV_USER;Password=9l6s7sIKR#3oED2B;Data Source=oracle:1521/FREEPDB1;"
+    ports:
+      - "8080:8080"
+    depends_on:
+      oracle:
+        condition: service_healthy       # Oracle イメージ組込みの healthcheck を待つ

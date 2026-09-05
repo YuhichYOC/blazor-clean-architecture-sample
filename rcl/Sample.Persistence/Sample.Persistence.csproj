@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- .NET 8 / EF Core 8 に対応する Oracle プロバイダー(8.x 系)。
+         NuGet で最新の 8.x パッチに更新してください。EF Core のメジャー(8)を必ず一致させること。 -->
+    <PackageReference Include="Oracle.EntityFrameworkCore" Version="8.23.40" />
+
+    <!-- Microsoft 推奨: Relational のパッチを直接固定して bug fix を確実に取り込む -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sample.Application\Sample.Application.csproj" />
+    <ProjectReference Include="..\Sample.Domain\Sample.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

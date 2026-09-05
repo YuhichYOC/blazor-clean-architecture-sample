@@ -1,0 +1,45 @@
+@*
+    マスタ削除の確認ダイアログ(削除パターン1)。
+
+    このダイアログの YES/NO が制御するのは「共有され得る “部品マスタ(Material)” を消すか否か」だけ。
+    品番マスタ(Item)は、ドメイン不変条件「品番は構成部品を1件以上持つ」を壊さないため、
+    NO の場合でも Bom 行とともに必ず削除される。
+    → 画面イメージも「部品マスタも削除しますか？」に更新され、この挙動と一致した。
+      (以前の「品番マスタと部品マスタも…」という文言・および“据え置き”の割り切りは解消済み。)
+
+    NO を選ぶと、削除パターン2(Item と Bom 行のみ削除・部品マスタは残す)と同じ結果になる。
+
+    責務は表示のみ。回答は OnAnswer(bool) で親へ返し、ユースケース呼び出しは親が行う。
+*@
+
+<div class="bom-modal-overlay">
+    <div class="bom-modal-dialog bom-modal-dialog--confirm">
+        <p class="confirm-message">部品マスタも削除しますか？</p>
+
+        <p class="confirm-detail">
+            品番 @ItemCode の構成部品はすべて他品番から参照されていません。
+            @if (MaterialCodes.Count > 0)
+            {
+                <text>(対象部品: @string.Join(", ", MaterialCodes))</text>
+            }
+        </p>
+
+        <div class="bom-modal-actions">
+            <button class="btn-primary" @onclick="() => AnswerAsync(true)">YES</button>
+            <button class="btn-default" @onclick="() => AnswerAsync(false)">NO</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>削除対象の品番。</summary>
+    [Parameter] public string ItemCode { get; set; } = default!;
+
+    /// <summary>YES のとき削除される孤児部品品番(他品番から参照されていないと確認済み)。</summary>
+    [Parameter] public IReadOnlyList<string> MaterialCodes { get; set; } = Array.Empty<string>();
+
+    /// <summary>ユーザー回答。true = YES(部品マスタも削除) / false = NO(部品マスタは残す)。</summary>
+    [Parameter] public EventCallback<bool> OnAnswer { get; set; }
+
+    private async Task AnswerAsync(bool alsoDeleteMasters) => await OnAnswer.InvokeAsync(alsoDeleteMasters);
+}

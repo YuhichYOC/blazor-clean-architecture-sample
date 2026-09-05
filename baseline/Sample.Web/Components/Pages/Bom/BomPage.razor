@@ -1,0 +1,219 @@
+@page "/bom"
+@rendermode InteractiveServer
+
+@using Sample.Application.Deletion
+@using Sample.Application.Query
+@using Sample.Application.ReadModels
+@using Sample.Application.Registration
+@using Sample.Web.Components.Bom
+@using Sample.Web.Forms
+
+@implements IDisposable
+
+@inject GetBomListUseCase Query
+@inject RegisterItemUseCase Register
+@inject DeleteItemUseCase Delete
+
+@*
+    部品構成表登録 画面(Image 2〜10)。
+
+    レンダーモード:
+      @@rendermode InteractiveServer を明示している。理由は「この画面はサーバー側でしか動けない」から。
+      GetBomListUseCase 等のユースケースは Oracle/EF に依存する Persistence を経由するため、
+      WebAssembly(WASM)クライアント側からは直接解決できない。WASM でこの画面を動かすには
+      Sample.Shared(DTO)+ API エンドポイントが別途必要になるが、それらは未設計。
+      → 現時点の唯一妥当な選択が InteractiveServer(サーバー対話)。
+        これは各 csproj の「WASM への載せ替えは Shared 経由で後日」というコメントとも整合する。
+
+    このコンポーネントの役割 = オーケストレーション:
+      - アプリケーション層(ユースケース)を叩くのはこの1箇所に集約する。
+      - 子コンポーネント(AddItemModal / MasterDeletionDialog)は「表示と入力」だけを担い、
+        結果は EventCallback で親へ返す。ユースケース呼び出しは持たない(container / presentational 分離)。
+      - 依存はすべて Sample.Application.* の型(コマンド/結果/読み取りモデル)のみ。
+        ここから Sample.Persistence の型は一切参照しない(境界は規約で守る。厳密化は後述の「要確認」参照)。
+
+    子コンポーネントに @@rendermode は付けない:
+      親が InteractiveServer の対話ツリー内でレンダリングされるため、子は自動的に同じモードになる。
+      子に再指定するとエラーになる。
+*@
+
+<h3>部品構成表登録</h3>
+
+@if (_rows is null)
+{
+    <p>読み込み中...</p>
+}
+else
+{
+    <table class="bom-grid">
+        <thead>
+            <tr>
+                <th></th>
+                <th>品番</th>
+                <th>品名</th>
+                <th>部品品番</th>
+                <th>部品品名</th>
+                <th>所要量</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                // 同一品番の2行目以降は品番・品名を空欄にし、選択ラジオも先頭行だけに置く。
+                // (「先頭行だけ表示」は純粋な画面都合。読み取りモデルは Bom 1行=1レコードのまま。)
+                string? prevItemCode = null;
+            }
+            @foreach (var row in _rows)
+            {
+                var isFirstOfGroup = row.ItemCode != prevItemCode;
+                prevItemCode = row.ItemCode;
+
+                <tr>
+                    <td>
+                        @if (isFirstOfGroup)
+                        {
+                            <input type="radio" name="selectedItem"
+                                   checked="@(_selectedItemCode == row.ItemCode)"
+                                   @onchange="() => _selectedItemCode = row.ItemCode" />
+                        }
+                    </td>
+                    <td>@(isFirstOfGroup ? row.ItemCode : "")</td>
+                    <td>@(isFirstOfGroup ? row.ItemName : "")</td>
+                    <td>@row.MaterialCode</td>
+                    <td>@row.MaterialName</td>
+                    <td>@row.Requirement</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="bom-actions">
+        <button class="btn-primary" @onclick="OpenAddModal">追加</button>
+        <button class="btn-default"
+                disabled="@(_selectedItemCode is null)"
+                @onclick="OnDeleteClickedAsync">
+            チェックしたアイテムを削除
+        </button>
+    </div>
+}
+
+@*
+    追加モーダルは条件レンダリングで出し入れする。
+    こうすると「開くたびに新しいインスタンス = 初期状態のフォーム」が保証され、
+    登録失敗(ValidationError)時は _showAddModal を true のまま保つのでインスタンスは維持され、
+    入力内容とエラー文言が残る。
+*@
+@if (_showAddModal)
+{
+    <AddItemModal Error="@_registerError"
+                  OnSubmit="OnRegisterSubmitAsync"
+                  OnCancel="CloseAddModal" />
+}
+
+@if (_pendingConfirm is not null)
+{
+    <MasterDeletionDialog ItemCode="_pendingConfirm.ItemCode"
+                          MaterialCodes="_pendingConfirm.DeletableMaterialCodes"
+                          OnAnswer="OnMasterDeletionAnsweredAsync" />
+}
+
+@code {
+    private IReadOnlyList<BomRow>? _rows;
+    private string? _selectedItemCode;
+
+    private bool _showAddModal;
+    private string? _registerError;
+
+    private ItemDeletionResult.MasterDeletionConfirmationRequired? _pendingConfirm;
+
+    // ユーザー操作にはフレームワーク由来の CancellationToken が無いため、
+    // コンポーネント寿命に紐づく CTS を用意して各ユースケースへ渡す。破棄時に cancel する。
+    private readonly CancellationTokenSource _cts = new();
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        // 画面ロード / 各操作後の再読み込み(Image 3・4・5 の「画面の再読み込み」)。
+        _rows = await Query.ExecuteAsync(_cts.Token);
+    }
+
+    // ── 追加フロー(Image 3, エラーは Image 6〜10)──────────────────────
+    private void OpenAddModal()
+    {
+        _registerError = null;
+        _showAddModal = true;
+    }
+
+    private void CloseAddModal() => _showAddModal = false;
+
+    private async Task OnRegisterSubmitAsync(RegisterItemCommand command)
+    {
+        // 検証はしない。ドメイン集約(Item/ComponentLine/Requirement)が不変条件を検査し、
+        // 違反は RegisterItemResult.ValidationError として返ってくる。
+        var result = await Register.ExecuteAsync(command, _cts.Token);
+
+        switch (result)
+        {
+            case RegisterItemResult.Success:
+                _showAddModal = false;   // 閉じる → 次回オープンは初期状態
+                _registerError = null;
+                await ReloadAsync();
+                break;
+
+            case RegisterItemResult.ValidationError error:
+                // モーダルは開いたまま。入力を保持して業務エラー文言を表示。
+                _registerError = error.Message;
+                break;
+        }
+    }
+
+    // ── 削除フロー(2フェーズ)──────────────────────────────────────
+    private async Task OnDeleteClickedAsync()
+    {
+        if (_selectedItemCode is null) return;
+
+        // フェーズ1: 孤児判定。まだ何も消えていない可能性がある。
+        var result = await Delete.BeginAsync(_selectedItemCode, _cts.Token);
+
+        switch (result)
+        {
+            case ItemDeletionResult.Deleted:
+                // 確認不要で削除完了。
+                // (構成部品の一部でも他品番と共有 → マスタは残す。Image 5)
+                await AfterDeletionAsync();
+                break;
+
+            case ItemDeletionResult.MasterDeletionConfirmationRequired confirm:
+                // 全構成部品が孤児 → YES/NO を問う(Image 4)。この時点では未削除。
+                _pendingConfirm = confirm;
+                break;
+        }
+    }
+
+    private async Task OnMasterDeletionAnsweredAsync(bool alsoDeleteMasters)
+    {
+        var confirm = _pendingConfirm!;
+        _pendingConfirm = null;
+
+        // フェーズ2:
+        //   YES → 孤児の部品マスタまでカスケード削除(Image 4)
+        //   NO  → Item と Bom 行のみ削除(部品マスタは残す)
+        // ※ どちらでも品番マスタ(Item)は必ず消える(理由は MasterDeletionDialog のコメント参照)。
+        await Delete.CompleteAsync(
+            confirm.ItemCode, alsoDeleteMasters, confirm.DeletableMaterialCodes, _cts.Token);
+
+        await AfterDeletionAsync();
+    }
+
+    private async Task AfterDeletionAsync()
+    {
+        _selectedItemCode = null;
+        await ReloadAsync();
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

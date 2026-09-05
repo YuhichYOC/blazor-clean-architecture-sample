@@ -1,0 +1,110 @@
+@using Sample.Application.Registration
+@using Sample.Presentation.Forms
+
+@*
+    追加モーダル(Image 3)。
+
+    責務は「表示と入力」だけ:
+      - UI 所有の可変フォームモデル(ItemFormModel)で編集途中の状態を持つ。
+        0件・重複・空欄・所要量0 などの“不正な途中状態”はここで自由に許す。
+      - 登録ボタンでフォームを RegisterItemCommand へ写して OnSubmit で親へ返す。
+      - 検証はしない。不変条件の検査はドメイン集約が担い、結果(エラー文言)は
+        親から Error パラメータで降ってくる。エラー時も親がこのモーダルを開いたまま保つため、
+        入力内容は保持される。
+
+    可視/不可視はこのコンポーネントでは持たない。親が @@if で出し入れする。
+    → 開くたびに新インスタンス = 初期状態のフォームになる。
+*@
+
+<div class="bom-modal-overlay">
+    <div class="bom-modal-dialog">
+        <h4>追加する品番を入力</h4>
+
+        <div class="form-row">
+            <label>品番</label>
+            <input class="form-input" @bind="_form.ItemCode" />
+        </div>
+        <div class="form-row">
+            <label>品名</label>
+            <input class="form-input" @bind="_form.ItemName" />
+        </div>
+
+        <div class="form-section-title">構成部品</div>
+        <table class="component-table">
+            <thead>
+                <tr>
+                    <th class="cell-op">
+                        <button class="btn-cell" @onclick="AddComponentRow" title="行を追加">＋</button>
+                    </th>
+                    <th>部品品番</th>
+                    <th>部品品名</th>
+                    <th>所要量</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in _form.Components)
+                {
+                    <tr @key="c">
+                        <td class="cell-op">
+                            <button class="btn-cell" @onclick="() => RemoveComponentRow(c)" title="この行を削除">－</button>
+                        </td>
+                        <td><input class="form-input" @bind="c.MaterialCode" /></td>
+                        <td><input class="form-input" @bind="c.MaterialName" /></td>
+                        <td><input class="form-input" type="number" step="0.01" @bind="c.Requirement" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (!string.IsNullOrEmpty(Error))
+        {
+            <p class="error-text">@Error</p>
+        }
+
+        <div class="bom-modal-actions">
+            <button class="btn-primary" @onclick="SubmitAsync">登録</button>
+            <button class="btn-default" @onclick="CancelAsync">キャンセル</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>登録失敗時の業務エラー文言(不変条件違反)。親が設定する。</summary>
+    [Parameter] public string? Error { get; set; }
+
+    /// <summary>登録ボタン押下。フォームから組み立てた登録コマンドを親へ渡す。</summary>
+    [Parameter] public EventCallback<RegisterItemCommand> OnSubmit { get; set; }
+
+    /// <summary>キャンセル。</summary>
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private readonly ItemFormModel _form = new();
+
+    protected override void OnInitialized()
+    {
+        // Image 3: モーダルは構成部品の空行を1つ持って開く(その行の「－」で削除、ヘッダの「＋」で追加)。
+        _form.AddComponentRow();
+    }
+
+    private void AddComponentRow() => _form.AddComponentRow();
+
+    private void RemoveComponentRow(ComponentFormModel row) => _form.RemoveComponentRow(row);
+
+    private async Task SubmitAsync()
+    {
+        // フォーム(生データ)→ 登録コマンド。ここでは検証しない。
+        var command = new RegisterItemCommand(
+            _form.ItemCode,
+            _form.ItemName,
+            _form.Components
+                .Select(c => new RegisterItemComponent(
+                    c.MaterialCode,
+                    c.MaterialName,
+                    c.Requirement ?? 0m))   // 未入力(null)は 0 とし、ドメインの「所要量>0」検査に委ねる(Image 8)
+                .ToList());
+
+        await OnSubmit.InvokeAsync(command);
+    }
+
+    private async Task CancelAsync() => await OnCancel.InvokeAsync();
+}
