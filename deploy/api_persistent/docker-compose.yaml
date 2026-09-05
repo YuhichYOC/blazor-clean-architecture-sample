@@ -1,0 +1,38 @@
+services:
+  oracle:
+    image: container-registry.oracle.com/database/free:latest
+    environment:
+      ORACLE_PWD: "OraclePwd_123"        # SYS/SYSTEM 用。init では OS 認証を使うので実質任意
+      NLS_LANG: ".AL32UTF8"
+    volumes:
+      - ./oracle-init:/opt/oracle/scripts/startup:ro
+    # ports: ["1521:1521"]               # ホスト側の SQL クライアントから覗きたいときだけ開ける
+
+  # DBアクセスAPI(EF Core / Oracle 直結の独立サーバー)。
+  #   ホストへは publish しない → compose ネットワーク上でだけ到達可(web からのみ叩かれる)。
+  api:
+    build:
+      context: ../../api_persistent
+      dockerfile: ../deploy/api_persistent/Sample.Api.Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      # Sample.Api が読む: Oracle 接続文字列。宛先は同一 compose ネットワーク上の oracle サービス。
+      ConnectionStrings__Bom: "User Id=DEV_USER;Password=9l6s7sIKR#3oED2B;Data Source=oracle:1521/FREEPDB1;"
+    depends_on:
+      oracle:
+        condition: service_healthy       # Oracle イメージ組込みの healthcheck を待つ
+
+  # Blazor ホスト。DB は触らず、api サービスを HTTP で叩く。
+  web:
+    build:
+      context: ../../api_persistent
+      dockerfile: ../deploy/api_persistent/Sample.Web.Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      # Sample.Web が読む: DBアクセスAPI のベースURL。
+      #   宛先 "api" は compose のサービス名(= コンテナnetwork の DNS 名)。末尾スラッシュ必須。
+      ConnectionStrings__BomApi: "http://api:5136/"
+    ports:
+      - "8080:8080"                      # web だけをホストへ公開
+    depends_on:
+      - api                              # 起動順のみ(api の listen 完了までは待たない)
