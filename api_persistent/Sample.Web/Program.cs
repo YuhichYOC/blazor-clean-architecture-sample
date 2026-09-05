@@ -56,8 +56,8 @@ builder.Services.AddCascadingAuthenticationState();
 // 合成ルートは配線の場所であり、すべてを知ることが許される唯一の層。
 // 一方、各コンポーネントは Sample.Application.* の型しか使わない(規約)。
 // ─────────────────────────────────────────────────────────────
-var connectionString = builder.Configuration.GetConnectionString("Bom")
-    ?? throw new InvalidOperationException("接続文字列 'Bom' が未設定です(appsettings.json)。");
+var connectionString = builder.Configuration.GetConnectionString("BomApi")
+    ?? throw new InvalidOperationException("接続文字列 'BomApi' が未設定です(appsettings.json)。");
 
 /*
  * 機能追加時に合成ルートでやること
