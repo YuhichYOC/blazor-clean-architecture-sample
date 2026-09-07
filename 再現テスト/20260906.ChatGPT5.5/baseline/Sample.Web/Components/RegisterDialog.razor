@@ -1,0 +1,155 @@
+﻿@using Sample.Application.UseCases.RegisterBom
+@using Sample.Domain.Validation
+@using Sample.Web.ViewModels
+
+@inject IRegisterBomUseCase RegisterBomUseCase
+
+@if (Visible)
+{
+    <div class="modal fade show d-block">
+
+        <div class="modal-dialog modal-xl">
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        BOM登録
+                    </h5>
+                </div>
+
+                <div class="modal-body">
+
+                    <ValidationSummary
+                        Errors="_errors" />
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            品番
+                        </label>
+
+                        <InputText class="form-control"
+                                   @bind="_model.ItemCode" />
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            品名
+                        </label>
+
+                        <InputText class="form-control"
+                                   @bind="_model.ItemName" />
+
+                    </div>
+
+                    <MaterialEditor
+                        Materials="_model.Materials"
+                        OnAdd="AddMaterial"
+                        OnDelete="DeleteMaterial" />
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button class="btn btn-secondary"
+                            @onclick="Close">
+                        キャンセル
+                    </button>
+
+                    <button class="btn btn-primary"
+                            @onclick="Register">
+                        登録
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code
+{
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback OnCompleted { get; set; }
+
+    private ItemViewModel _model = new();
+
+    private IReadOnlyList<ValidationError> _errors
+        = Array.Empty<ValidationError>();
+
+    protected override void OnParametersSet()
+    {
+        if (!Visible)
+        {
+            return;
+        }
+
+        _model = new ItemViewModel();
+
+        _model.Materials.Add(new MaterialViewModel());
+
+        _errors = Array.Empty<ValidationError>();
+    }
+
+    private Task AddMaterial()
+    {
+        _model.Materials.Add(new MaterialViewModel());
+
+        return Task.CompletedTask;
+    }
+
+    private Task DeleteMaterial(int index)
+    {
+        _model.Materials.RemoveAt(index);
+
+        return Task.CompletedTask;
+    }
+
+    private async Task Register()
+    {
+        RegisterBomRequest request = new()
+        {
+            ItemCode = _model.ItemCode,
+            ItemName = _model.ItemName,
+
+            Materials = _model.Materials
+                .Select(x => new RegisterMaterialRequest
+                {
+                    MaterialCode = x.MaterialCode,
+                    MaterialName = x.MaterialName,
+                    Requirement = x.Requirement
+                })
+                .ToList()
+        };
+
+        RegisterBomResponse response =
+            await RegisterBomUseCase.ExecuteAsync(request);
+
+        if (!response.Success)
+        {
+            _errors = response.Errors;
+            return;
+        }
+
+        await OnCompleted.InvokeAsync();
+
+        await OnClose.InvokeAsync();
+    }
+
+    private Task Close()
+        => OnClose.InvokeAsync();
+}

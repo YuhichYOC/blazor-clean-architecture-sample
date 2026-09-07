@@ -1,0 +1,22 @@
+﻿@using Sample.Domain.Validation
+
+@if (Errors.Count > 0)
+{
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+
+            @foreach (ValidationError error in Errors)
+            {
+                <li>@error.Message</li>
+            }
+
+        </ul>
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public IReadOnlyList<ValidationError> Errors { get; set; }
+        = Array.Empty<ValidationError>();
+}

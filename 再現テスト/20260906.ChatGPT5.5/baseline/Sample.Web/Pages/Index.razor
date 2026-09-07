@@ -1,0 +1,181 @@
+﻿@page "/"
+
+@using Sample.Application.UseCases.DeleteBomExecute
+@using Sample.Application.UseCases.DeleteBomPreCheck
+@using Sample.Application.UseCases.GetBomList
+@using Sample.Domain.DTO
+@using Sample.Web.Components
+
+@inject IGetBomListUseCase GetBomListUseCase
+@inject IDeleteBomPreCheckUseCase DeleteBomPreCheckUseCase
+@inject IDeleteBomExecuteUseCase DeleteBomExecuteUseCase
+
+<PageTitle>BOM管理サンプル</PageTitle>
+
+<h3>BOM管理サンプル</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary"
+            @onclick="OpenRegisterDialog">
+        登録
+    </button>
+</div>
+
+<table class="table table-bordered table-hover">
+
+    <thead class="table-light">
+
+        <tr>
+            <th>品番</th>
+            <th>品名</th>
+            <th>部品品番</th>
+            <th>部品品名</th>
+            <th class="text-end">所要量</th>
+            <th></th>
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+    @foreach (ItemBomDto item in _items)
+    {
+        <tr>
+
+            <td>@item.ItemCode</td>
+
+            <td>@item.ItemName</td>
+
+            <td>@item.MaterialCode</td>
+
+            <td>@item.MaterialName</td>
+
+            <td class="text-end">
+                @item.Requirement
+            </td>
+
+            <td>
+
+                <button class="btn btn-danger btn-sm"
+                        @onclick="() => DeleteAsync(item.ItemCode)">
+                    削除
+                </button>
+
+            </td>
+
+        </tr>
+    }
+
+    </tbody>
+
+</table>
+
+<RegisterDialog
+    Visible="@_showRegisterDialog"
+    OnClose="CloseRegisterDialog"
+    OnCompleted="RegisterCompletedAsync" />
+
+<ConfirmDeleteDialog
+    Visible="@_showDeleteDialog"
+    MaterialCodes="@_deleteMaterialCodes"
+    OnClose="DeleteDialogClosedAsync" />
+
+@code
+{
+    private IReadOnlyList<ItemBomDto> _items
+        = Array.Empty<ItemBomDto>();
+
+    private bool _showRegisterDialog;
+
+    private bool _showDeleteDialog;
+
+    private IReadOnlyList<string> _deleteMaterialCodes
+        = Array.Empty<string>();
+
+    private string? _deleteItemCode;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        GetBomListResponse response =
+            await GetBomListUseCase.ExecuteAsync();
+
+        _items = response.Items;
+    }
+
+    private void OpenRegisterDialog()
+    {
+        _showRegisterDialog = true;
+    }
+
+    private Task CloseRegisterDialog()
+    {
+        _showRegisterDialog = false;
+
+        return Task.CompletedTask;
+    }
+
+    private async Task RegisterCompletedAsync()
+    {
+        _showRegisterDialog = false;
+
+        await ReloadAsync();
+    }
+
+    private async Task DeleteAsync(string itemCode)
+    {
+        _deleteItemCode = itemCode;
+
+        DeleteBomPreCheckResponse response =
+            await DeleteBomPreCheckUseCase.ExecuteAsync(
+                new DeleteBomPreCheckRequest
+                {
+                    ItemCode = itemCode
+                });
+
+        if (!response.NeedConfirm)
+        {
+            await ExecuteDeleteAsync(false);
+            return;
+        }
+
+        _deleteMaterialCodes = response.MaterialCodes;
+
+        _showDeleteDialog = true;
+    }
+
+    private async Task DeleteDialogClosedAsync(
+        ConfirmDeleteResult result)
+    {
+        _showDeleteDialog = false;
+
+        await ExecuteDeleteAsync(
+            result == ConfirmDeleteResult.Yes);
+    }
+
+    private async Task ExecuteDeleteAsync(
+        bool deleteMaterials)
+    {
+        if (_deleteItemCode is null)
+        {
+            return;
+        }
+
+        await DeleteBomExecuteUseCase.ExecuteAsync(
+            new DeleteBomExecuteRequest
+            {
+                ItemCode = _deleteItemCode,
+                DeleteMaterials = deleteMaterials
+            });
+
+        _deleteItemCode = null;
+
+        _deleteMaterialCodes = Array.Empty<string>();
+
+        await ReloadAsync();
+    }
+}

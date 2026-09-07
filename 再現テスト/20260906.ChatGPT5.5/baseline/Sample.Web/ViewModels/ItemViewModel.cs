@@ -13,9 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Sample.Application.UseCases.DeleteBomPreCheck;
+namespace Sample.Web.ViewModels;
 
-public sealed class DeleteBomPreCheckRequest
+public sealed class ItemViewModel
 {
-    public required string ItemCode { get; init; }
+    public string ItemCode { get; set; } = string.Empty;
+
+    public string ItemName { get; set; } = string.Empty;
+
+    public List<MaterialViewModel> Materials { get; set; }
+        = [];
 }

@@ -13,9 +13,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Sample.Application.UseCases.DeleteBomPreCheck;
+using Sample.Application.DependencyInjection;
+using Sample.Persistence.DependencyInjection;
+using Sample.Web.Components;
 
-public sealed class DeleteBomPreCheckRequest
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services
+    .AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+builder.Services.AddApplication();
+
+builder.Services.AddPersistence(
+    builder.Configuration);
+
+var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
 {
-    public required string ItemCode { get; init; }
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
 }
+
+app.UseHttpsRedirection();
+
+app.UseAntiforgery();
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+app.Run();

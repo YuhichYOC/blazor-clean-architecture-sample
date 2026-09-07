@@ -1,6 +1,4 @@
-﻿// ItemRepository.cs
-// 
-// Copyright 2026 Yuichi Yoshii
+﻿// Copyright 2026 Yuichi Yoshii
 //     吉井雄一 @ 吉井産業  you.65535.kir@gmail.com
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +14,6 @@
 // limitations under the License.
 
 using Microsoft.EntityFrameworkCore;
-using Sample.Application.UseCases.DeleteBomExecute;
-using Sample.Application.UseCases.DeleteBomPreCheck;
-using Sample.Application.UseCases.RegisterBom;
 using Sample.Domain.DTO;
 using Sample.Domain.Models;
 using Sample.Persistence.Context;
@@ -26,14 +21,20 @@ using Sample.Persistence.Records;
 
 namespace Sample.Persistence.Repository;
 
-public sealed class ItemRepository(OracleContext _context)
+public sealed class ItemRepository
 {
+    private readonly OracleContext _context;
+
+    public ItemRepository(
+        OracleContext context)
+    {
+        _context = context;
+    }
+
     public async Task<IReadOnlyList<ItemBomDto>> GetListAsync()
     {
         return await _context.Boms
             .AsNoTracking()
-            .Include(x => x.Item)
-            .Include(x => x.Material)
             .OrderBy(x => x.ItemCode)
             .ThenBy(x => x.MaterialCode)
             .Select(x => new ItemBomDto
@@ -47,9 +48,13 @@ public sealed class ItemRepository(OracleContext _context)
             .ToListAsync();
     }
 
-    public async Task RegisterAsync(RegisterItemModel model)
+    public async Task RegisterAsync(
+        RegisterItemModel model)
     {
-        ItemRecord? item = await _context.Items.FindAsync(model.ItemCode);
+        ItemRecord? item =
+            await _context.Items
+                .SingleOrDefaultAsync(x =>
+                    x.ItemCode == model.ItemCode);
 
         if (item is null)
         {
@@ -61,22 +66,24 @@ public sealed class ItemRepository(OracleContext _context)
 
             _context.Items.Add(item);
         }
-        
-        foreach (var material in model.Materials)
-        {
-            MaterialRecord? record =
-                await _context.Materials.FindAsync(
-                    material.MaterialCode);
 
-            if (record is null)
+        foreach (RegisterMaterialModel material
+                 in model.Materials)
+        {
+            MaterialRecord? materialRecord =
+                await _context.Materials
+                    .SingleOrDefaultAsync(x =>
+                        x.MaterialCode == material.MaterialCode);
+
+            if (materialRecord is null)
             {
-                record = new MaterialRecord
+                materialRecord = new MaterialRecord
                 {
                     MaterialCode = material.MaterialCode,
                     MaterialName = material.MaterialName
                 };
 
-                _context.Materials.Add(record);
+                _context.Materials.Add(materialRecord);
             }
 
             _context.Boms.Add(
@@ -87,39 +94,34 @@ public sealed class ItemRepository(OracleContext _context)
                     Requirement = material.Requirement
                 });
         }
-        
+
         await _context.SaveChangesAsync();
     }
 
     public async Task<DeleteBomPreCheckResult> CheckDeleteTargetAsync(string itemCode)
     {
-        var materialCodes =
+        var materials =
             await _context.Boms
                 .Where(x => x.ItemCode == itemCode)
                 .Select(x => x.MaterialCode)
                 .ToListAsync();
         
-        bool needConfirm = false;
+        var usedByOthers =
+            await _context.Boms
+                .Where(x =>
+                    x.ItemCode != itemCode &&
+                    materials.Contains(x.MaterialCode))
+                .Select(x => x.MaterialCode)
+                .Distinct()
+                .ToListAsync();
         
-        foreach (string materialCode in materialCodes)
-        {
-            bool usedByOther =
-                await _context.Boms
-                    .AnyAsync(x =>
-                        x.MaterialCode == materialCode &&
-                        x.ItemCode != itemCode);
-
-            if (!usedByOther)
-            {
-                needConfirm = true;
-                break;
-            }
-        }
+        bool needConfirm =
+            materials.Except(usedByOthers).Any();
         
         return new DeleteBomPreCheckResult
         {
             NeedConfirm = needConfirm,
-            MaterialCodes = materialCodes
+            MaterialCodes = materials
         };
     }
 
@@ -130,23 +132,28 @@ public sealed class ItemRepository(OracleContext _context)
                 .Where(x => x.ItemCode == itemCode)
                 .ToListAsync();
         
+        var materialCodes =
+            boms.Select(x => x.MaterialCode)
+                .ToList();
+        
         _context.Boms.RemoveRange(boms);
         
         ItemRecord item =
-            await _context.Items.FindAsync(itemCode);
+            await _context.Items
+                .SingleAsync(x => x.ItemCode == itemCode);
 
         _context.Items.Remove(item);
         
         if (deleteMaterials)
         {
-            foreach (BomRecord bom in boms)
-            {
-                MaterialRecord material =
-                    await _context.Materials.FindAsync(
-                        bom.MaterialCode);
+            var materials =
+                await _context.Materials
+                    .Where(x =>
+                        materialCodes.Contains(
+                            x.MaterialCode))
+                    .ToListAsync();
 
-                _context.Materials.Remove(material);
-            }
+            _context.Materials.RemoveRange(materials);
         }
         
         await _context.SaveChangesAsync();

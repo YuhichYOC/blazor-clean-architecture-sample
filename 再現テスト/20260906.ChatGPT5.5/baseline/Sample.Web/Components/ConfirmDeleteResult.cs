@@ -13,9 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Sample.Application.UseCases.DeleteBomPreCheck;
-
-public sealed class DeleteBomPreCheckRequest
+public enum ConfirmDeleteResult
 {
-    public required string ItemCode { get; init; }
+    Yes,
+    No
 }

@@ -1,6 +1,4 @@
-﻿// PersistenceServiceCollectionExtensions.cs
-// 
-// Copyright 2026 Yuichi Yoshii
+﻿// Copyright 2026 Yuichi Yoshii
 //     吉井雄一 @ 吉井産業  you.65535.kir@gmail.com
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +16,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Oracle.EntityFrameworkCore;
 using Sample.Domain.Repository;
 using Sample.Persistence.Adapter;
 using Sample.Persistence.Context;
@@ -39,8 +38,7 @@ public static class PersistenceServiceCollectionExtensions
 
         services.AddScoped<ItemRepository>();
 
-        services.AddScoped<IItemRepository,
-            ItemRepositoryAdapter>();
+        services.AddScoped<IItemRepository, ItemRepositoryAdapter>();
 
         return services;
     }

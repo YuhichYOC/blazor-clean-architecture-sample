@@ -1,0 +1,81 @@
+﻿@if (Visible)
+{
+    <div class="modal fade show d-block"
+         tabindex="-1">
+
+        <div class="modal-dialog">
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title">
+                        確認
+                    </h5>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <p>
+                        以下の部品品番も削除しますか？
+                    </p>
+
+                    <ul>
+
+                        @foreach (var mc in MaterialCodes)
+                        {
+                            <li>@mc</li>
+                        }
+
+                    </ul>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button class="btn btn-secondary"
+                            @onclick="No">
+                        いいえ
+                    </button>
+
+                    <button class="btn btn-danger"
+                            @onclick="Yes">
+                        はい
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code
+{
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<string> MaterialCodes { get; set; }
+        = Array.Empty<string>();
+
+    [Parameter]
+    public EventCallback<ConfirmDeleteResult> OnClose { get; set; }
+
+    private async Task Yes()
+    {
+        await OnClose.InvokeAsync(
+            ConfirmDeleteResult.Yes);
+    }
+
+    private async Task No()
+    {
+        await OnClose.InvokeAsync(
+            ConfirmDeleteResult.No);
+    }
+}

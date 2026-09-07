@@ -1,0 +1,69 @@
+﻿@using Sample.Web.ViewModels
+
+<table class="table table-sm">
+    <thead>
+    <tr>
+        <th>部品品番</th>
+        <th>部品品名</th>
+        <th>所要量</th>
+        <th></th>
+    </tr>
+    </thead>
+
+    <tbody>
+    @for (int i = 0; i < Materials.Count; i++)
+    {
+        var material = Materials[i];
+
+        <tr>
+            <td>
+                <InputText class="form-control"
+                           @bind="material.MaterialCode" />
+            </td>
+
+            <td>
+                <InputText class="form-control"
+                           @bind="material.MaterialName" />
+            </td>
+
+            <td>
+                <InputNumber class="form-control"
+                             @bind="material.Requirement" />
+            </td>
+
+            <td>
+                <button type="button"
+                        class="btn btn-danger btn-sm"
+                        @onclick="() => DeleteRow(i)">
+                    削除
+                </button>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<button type="button"
+        class="btn btn-secondary"
+        @onclick="AddRow">
+    行追加
+</button>
+
+@code
+{
+    [Parameter]
+    public IReadOnlyList<MaterialViewModel> Materials { get; set; }
+        = Array.Empty<MaterialViewModel>();
+
+    [Parameter]
+    public EventCallback OnAdd { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnDelete { get; set; }
+
+    private Task AddRow()
+        => OnAdd.InvokeAsync();
+
+    private Task DeleteRow(int index)
+        => OnDelete.InvokeAsync(index);
+}

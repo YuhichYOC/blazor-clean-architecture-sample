@@ -14,29 +14,28 @@
 // limitations under the License.
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Sample.Persistence.Records;
 
-namespace Sample.Persistence.Context;
+namespace Sample.Persistence.Configurations;
 
-public sealed class OracleContext : DbContext
+public sealed class ItemConfiguration
+    : IEntityTypeConfiguration<ItemRecord>
 {
-    public OracleContext(
-        DbContextOptions<OracleContext> options)
-        : base(options)
+    public void Configure(EntityTypeBuilder<ItemRecord> builder)
     {
-    }
+        builder.ToTable("ITEM");
 
-    public DbSet<ItemRecord> Items => Set<ItemRecord>();
+        builder.HasKey(x => x.ItemCode);
 
-    public DbSet<MaterialRecord> Materials => Set<MaterialRecord>();
+        builder.Property(x => x.ItemCode)
+            .HasColumnName("ITEM_CODE")
+            .HasMaxLength(50)
+            .IsRequired();
 
-    public DbSet<BomRecord> Boms => Set<BomRecord>();
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.ApplyConfigurationsFromAssembly(
-            typeof(OracleContext).Assembly);
-
-        base.OnModelCreating(modelBuilder);
+        builder.Property(x => x.ItemName)
+            .HasColumnName("ITEM_NAME")
+            .HasMaxLength(100)
+            .IsRequired();
     }
 }

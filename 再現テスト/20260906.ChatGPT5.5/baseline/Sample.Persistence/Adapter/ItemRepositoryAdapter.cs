@@ -1,6 +1,4 @@
-﻿// ItemRepositoryAdapter.cs
-// 
-// Copyright 2026 Yuichi Yoshii
+﻿// Copyright 2026 Yuichi Yoshii
 //     吉井雄一 @ 吉井産業  you.65535.kir@gmail.com
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,11 +20,13 @@ using Sample.Persistence.Repository;
 
 namespace Sample.Persistence.Adapter;
 
-public sealed class ItemRepositoryAdapter : IItemRepository
+public sealed class ItemRepositoryAdapter
+    : IItemRepository
 {
     private readonly ItemRepository _repository;
 
-    public ItemRepositoryAdapter(ItemRepository repository)
+    public ItemRepositoryAdapter(
+        ItemRepository repository)
     {
         _repository = repository;
     }
@@ -34,7 +34,8 @@ public sealed class ItemRepositoryAdapter : IItemRepository
     public Task<IReadOnlyList<ItemBomDto>> GetListAsync()
         => _repository.GetListAsync();
 
-    public Task RegisterAsync(RegisterItemModel model)
+    public Task RegisterAsync(
+        RegisterItemModel model)
         => _repository.RegisterAsync(model);
 
     public Task<DeleteBomPreCheckResult> CheckDeleteTargetAsync(
