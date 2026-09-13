@@ -1,0 +1,313 @@
+@page "/"
+@rendermode InteractiveServer
+@inject GetBomListUseCase GetBomListUseCase
+@inject RegisterPartsListUseCase RegisterPartsListUseCase
+@inject PrepareItemDeletionUseCase PrepareItemDeletionUseCase
+@inject DeleteItemUseCase DeleteItemUseCase
+
+<PageTitle>部品構成表登録</PageTitle>
+
+<h3>部品構成表登録</h3>
+
+<table class="table table-bordered align-middle">
+    <thead>
+        <tr>
+            <th style="width: 2.5rem;"></th>
+            <th>品番</th>
+            <th>品名</th>
+            <th>部品品番</th>
+            <th>部品品名</th>
+            <th>所要量</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var row in _displayRows)
+        {
+            <tr>
+                <td>
+                    @if (row.IsGroupHead)
+                    {
+                        <input type="checkbox"
+                               checked="@_selectedItemCodes.Contains(row.Data.ItemCode)"
+                               @onchange="@(e => ToggleSelection(row.Data.ItemCode, e.Value is true))" />
+                    }
+                </td>
+                <td>@(row.IsGroupHead ? row.Data.ItemCode : "")</td>
+                <td>@(row.IsGroupHead ? row.Data.ItemName : "")</td>
+                <td>@row.Data.MaterialCode</td>
+                <td>@row.Data.MaterialName</td>
+                <td>@row.Data.Requirement</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<button type="button" class="btn btn-primary" @onclick="OpenAddDialog">追加</button>
+<button type="button" class="btn btn-outline-secondary"
+        disabled="@(_selectedItemCodes.Count == 0)"
+        @onclick="OnDeleteCheckedClickedAsync">
+    チェックしたアイテムを削除
+</button>
+
+@if (_showAddDialog)
+{
+    <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">追加する品番を入力</h5>
+                    <button type="button" class="btn-close" @onclick="CloseAddDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">品番</label>
+                        <input class="form-control @ErrorClass(ValidationFields.ItemCode)"
+                               @bind="_newItemCode" @bind:event="oninput" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">品名</label>
+                        <input class="form-control @ErrorClass(ValidationFields.ItemName)"
+                               @bind="_newItemName" @bind:event="oninput" />
+                    </div>
+
+                    <label class="form-label">構成部品</label>
+                    @if (HasError(ValidationFields.ConstituentParts))
+                    {
+                        <div class="text-danger small mb-2">構成部品を1件以上入力してください。</div>
+                    }
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddConstituentPartRow">+</button>
+                                </th>
+                                <th>部品品番</th>
+                                <th>部品品名</th>
+                                <th>所要量</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < _newConstituentParts.Count; i++)
+                            {
+                                var index = i;
+                                var part = _newConstituentParts[index];
+                                <tr>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => RemoveConstituentPartRow(index)">-</button>
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm @RowErrorClass(ValidationFields.MaterialCode, index)"
+                                               @bind="part.MaterialCode" @bind:event="oninput" />
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm @RowErrorClass(ValidationFields.MaterialName, index)"
+                                               @bind="part.MaterialName" @bind:event="oninput" />
+                                    </td>
+                                    <td>
+                                        <input type="number" step="0.01"
+                                               class="form-control form-control-sm @RowErrorClass(ValidationFields.Requirement, index)"
+                                               @bind="part.Requirement" @bind:event="oninput" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseAddDialog">キャンセル</button>
+                    <button type="button" class="btn btn-primary" @onclick="SubmitRegistrationAsync">登録</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showDeleteConfirmDialog)
+{
+    <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <p class="mb-0">部品マスタも削除しますか？</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-primary" @onclick="() => OnDeleteConfirmAsync(true)">YES</button>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="() => OnDeleteConfirmAsync(false)">NO</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<BomListItemDto> _bomList = Array.Empty<BomListItemDto>();
+    private List<DisplayRow> _displayRows = new();
+    private readonly HashSet<string> _selectedItemCodes = new();
+
+    // 追加ダイアログの状態
+    private bool _showAddDialog;
+    private string _newItemCode = string.Empty;
+    private string _newItemName = string.Empty;
+    private List<ConstituentPartInput> _newConstituentParts = new();
+    private IReadOnlyList<ValidationError> _validationErrors = Array.Empty<ValidationError>();
+
+    // 削除確認ダイアログの状態（チェックした品番を1件ずつ順に処理する）
+    private bool _showDeleteConfirmDialog;
+    private string? _pendingDeleteItemCode;
+    private IReadOnlyList<MaterialDeletionCandidate> _pendingDeleteCandidates = Array.Empty<MaterialDeletionCandidate>();
+    private Queue<string> _deleteQueue = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadListAsync();
+    }
+
+    private async Task ReloadListAsync()
+    {
+        _bomList = await GetBomListUseCase.ExecuteAsync();
+        _displayRows = BuildDisplayRows(_bomList);
+    }
+
+    private static List<DisplayRow> BuildDisplayRows(IReadOnlyList<BomListItemDto> items)
+    {
+        var result = new List<DisplayRow>();
+        string? previousItemCode = null;
+        foreach (var item in items)
+        {
+            var isGroupHead = item.ItemCode != previousItemCode;
+            result.Add(new DisplayRow(item, isGroupHead));
+            previousItemCode = item.ItemCode;
+        }
+
+        return result;
+    }
+
+    private void ToggleSelection(string itemCode, bool isSelected)
+    {
+        if (isSelected)
+        {
+            _selectedItemCodes.Add(itemCode);
+        }
+        else
+        {
+            _selectedItemCodes.Remove(itemCode);
+        }
+    }
+
+    // ---- 追加・新規登録 ----
+
+    private void OpenAddDialog()
+    {
+        _newItemCode = string.Empty;
+        _newItemName = string.Empty;
+        _newConstituentParts = new List<ConstituentPartInput> { new() };
+        _validationErrors = Array.Empty<ValidationError>();
+        _showAddDialog = true;
+    }
+
+    private void CloseAddDialog()
+    {
+        _showAddDialog = false;
+    }
+
+    private void AddConstituentPartRow()
+    {
+        _newConstituentParts.Add(new ConstituentPartInput());
+    }
+
+    private void RemoveConstituentPartRow(int index)
+    {
+        _newConstituentParts.RemoveAt(index);
+    }
+
+    private async Task SubmitRegistrationAsync()
+    {
+        var registration = new PartsListRegistration(
+            _newItemCode,
+            _newItemName,
+            _newConstituentParts
+                .Select(p => new ConstituentPart(p.MaterialCode, p.MaterialName, p.Requirement))
+                .ToList());
+
+        var result = await RegisterPartsListUseCase.ExecuteAsync(registration);
+
+        if (!result.Success)
+        {
+            _validationErrors = result.Errors;
+            return;
+        }
+
+        _showAddDialog = false;
+        await ReloadListAsync();
+    }
+
+    private bool HasError(string field)
+        => _validationErrors.Any(e => e.Field == field && e.ConstituentPartIndex is null);
+
+    private bool HasRowError(string field, int index)
+        => _validationErrors.Any(e => e.Field == field && e.ConstituentPartIndex == index);
+
+    private string ErrorClass(string field) => HasError(field) ? "is-invalid" : "";
+
+    private string RowErrorClass(string field, int index) => HasRowError(field, index) ? "is-invalid" : "";
+
+    // ---- 削除 ----
+
+    private async Task OnDeleteCheckedClickedAsync()
+    {
+        _deleteQueue = new Queue<string>(_selectedItemCodes);
+        await ProcessNextDeleteAsync();
+    }
+
+    /// <summary>
+    /// チェックされた品番を1件ずつ処理する。
+    /// 部品マスタ削除の確認が必要な品番があれば、そこでダイアログを出して一旦止まる。
+    /// </summary>
+    private async Task ProcessNextDeleteAsync()
+    {
+        if (_deleteQueue.Count == 0)
+        {
+            _selectedItemCodes.Clear();
+            await ReloadListAsync();
+            return;
+        }
+
+        var itemCode = _deleteQueue.Dequeue();
+        var preparation = await PrepareItemDeletionUseCase.ExecuteAsync(itemCode);
+
+        if (preparation.RequiresConfirmation)
+        {
+            _pendingDeleteItemCode = itemCode;
+            _pendingDeleteCandidates = preparation.Candidates;
+            _showDeleteConfirmDialog = true;
+            return;
+        }
+
+        // 確認不要（削除パターン2：部品マスタは削除しない）
+        await DeleteItemUseCase.ExecuteAsync(itemCode, preparation.Candidates, confirmedByUser: false);
+        await ProcessNextDeleteAsync();
+    }
+
+    private async Task OnDeleteConfirmAsync(bool confirmed)
+    {
+        _showDeleteConfirmDialog = false;
+
+        if (_pendingDeleteItemCode is not null)
+        {
+            await DeleteItemUseCase.ExecuteAsync(_pendingDeleteItemCode, _pendingDeleteCandidates, confirmed);
+            _pendingDeleteItemCode = null;
+        }
+
+        await ProcessNextDeleteAsync();
+    }
+
+    private sealed record DisplayRow(BomListItemDto Data, bool IsGroupHead);
+
+    private sealed class ConstituentPartInput
+    {
+        public string MaterialCode { get; set; } = string.Empty;
+        public string MaterialName { get; set; } = string.Empty;
+        public decimal Requirement { get; set; }
+    }
+}
