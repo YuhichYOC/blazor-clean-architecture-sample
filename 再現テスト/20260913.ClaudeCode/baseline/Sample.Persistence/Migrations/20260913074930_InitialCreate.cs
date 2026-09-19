@@ -11,71 +11,71 @@ namespace Sample.Persistence.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Item",
+                name: "ITEM",
                 columns: table => new
                 {
-                    item_code = table.Column<string>(type: "varchar2(20)", nullable: false),
-                    item_name = table.Column<string>(type: "nvarchar2(40)", nullable: false)
+                    ITEM_CODE = table.Column<string>(type: "VARCHAR2(20)", nullable: false),
+                    ITEM_NAME = table.Column<string>(type: "NVARCHAR2(40)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Item", x => x.item_code);
+                    table.PrimaryKey("PK_ITEM", x => x.ITEM_CODE);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Material",
+                name: "MATERIAL",
                 columns: table => new
                 {
-                    item_code = table.Column<string>(type: "varchar2(20)", nullable: false),
-                    item_name = table.Column<string>(type: "nvarchar2(40)", nullable: false)
+                    ITEM_CODE = table.Column<string>(type: "VARCHAR2(20)", nullable: false),
+                    ITEM_NAME = table.Column<string>(type: "NVARCHAR2(40)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Material", x => x.item_code);
+                    table.PrimaryKey("PK_MATERIAL", x => x.ITEM_CODE);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Bom",
+                name: "BOM",
                 columns: table => new
                 {
-                    item_code = table.Column<string>(type: "varchar2(20)", nullable: false),
-                    m_item_code = table.Column<string>(type: "varchar2(20)", nullable: false),
-                    requirement = table.Column<decimal>(type: "number(9,2)", nullable: false)
+                    ITEM_CODE = table.Column<string>(type: "VARCHAR2(20)", nullable: false),
+                    M_ITEM_CODE = table.Column<string>(type: "VARCHAR2(20)", nullable: false),
+                    REQUIREMENT = table.Column<decimal>(type: "NUMBER(9,2)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Bom", x => new { x.item_code, x.m_item_code });
+                    table.PrimaryKey("PK_BOM", x => new { x.ITEM_CODE, x.M_ITEM_CODE });
                     table.ForeignKey(
-                        name: "FK_Bom_Item_item_code",
-                        column: x => x.item_code,
-                        principalTable: "Item",
-                        principalColumn: "item_code",
+                        name: "FK_BOM_ITEM",
+                        column: x => x.ITEM_CODE,
+                        principalTable: "ITEM",
+                        principalColumn: "ITEM_CODE",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Bom_Material_m_item_code",
-                        column: x => x.m_item_code,
-                        principalTable: "Material",
-                        principalColumn: "item_code",
+                        name: "FK_BOM_MATERIAL",
+                        column: x => x.M_ITEM_CODE,
+                        principalTable: "MATERIAL",
+                        principalColumn: "ITEM_CODE",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Bom_m_item_code",
-                table: "Bom",
-                column: "m_item_code");
+                name: "IX_BOM_M_ITEM_CODE",
+                table: "BOM",
+                column: "M_ITEM_CODE");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Bom");
+                name: "BOM");
 
             migrationBuilder.DropTable(
-                name: "Item");
+                name: "ITEM");
 
             migrationBuilder.DropTable(
-                name: "Material");
+                name: "MATERIAL");
         }
     }
 }

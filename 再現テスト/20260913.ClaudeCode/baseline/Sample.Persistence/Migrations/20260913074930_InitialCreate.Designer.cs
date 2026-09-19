@@ -27,54 +27,54 @@ namespace Sample.Persistence.Migrations
             modelBuilder.Entity("Sample.Persistence.Records.BomRecord", b =>
                 {
                     b.Property<string>("ItemCode")
-                        .HasColumnType("varchar2(20)")
-                        .HasColumnName("item_code");
+                        .HasColumnType("VARCHAR2(20)")
+                        .HasColumnName("ITEM_CODE");
 
                     b.Property<string>("MItemCode")
-                        .HasColumnType("varchar2(20)")
-                        .HasColumnName("m_item_code");
+                        .HasColumnType("VARCHAR2(20)")
+                        .HasColumnName("M_ITEM_CODE");
 
                     b.Property<decimal>("Requirement")
-                        .HasColumnType("number(9,2)")
-                        .HasColumnName("requirement");
+                        .HasColumnType("NUMBER(9,2)")
+                        .HasColumnName("REQUIREMENT");
 
                     b.HasKey("ItemCode", "MItemCode");
 
                     b.HasIndex("MItemCode");
 
-                    b.ToTable("Bom", (string)null);
+                    b.ToTable("BOM", (string)null);
                 });
 
             modelBuilder.Entity("Sample.Persistence.Records.ItemRecord", b =>
                 {
                     b.Property<string>("ItemCode")
-                        .HasColumnType("varchar2(20)")
-                        .HasColumnName("item_code");
+                        .HasColumnType("VARCHAR2(20)")
+                        .HasColumnName("ITEM_CODE");
 
                     b.Property<string>("ItemName")
                         .IsRequired()
-                        .HasColumnType("nvarchar2(40)")
-                        .HasColumnName("item_name");
+                        .HasColumnType("NVARCHAR2(40)")
+                        .HasColumnName("ITEM_NAME");
 
                     b.HasKey("ItemCode");
 
-                    b.ToTable("Item", (string)null);
+                    b.ToTable("ITEM", (string)null);
                 });
 
             modelBuilder.Entity("Sample.Persistence.Records.MaterialRecord", b =>
                 {
                     b.Property<string>("ItemCode")
-                        .HasColumnType("varchar2(20)")
-                        .HasColumnName("item_code");
+                        .HasColumnType("VARCHAR2(20)")
+                        .HasColumnName("ITEM_CODE");
 
                     b.Property<string>("ItemName")
                         .IsRequired()
-                        .HasColumnType("nvarchar2(40)")
-                        .HasColumnName("item_name");
+                        .HasColumnType("NVARCHAR2(40)")
+                        .HasColumnName("ITEM_NAME");
 
                     b.HasKey("ItemCode");
 
-                    b.ToTable("Material", (string)null);
+                    b.ToTable("MATERIAL", (string)null);
                 });
 
             modelBuilder.Entity("Sample.Persistence.Records.BomRecord", b =>
